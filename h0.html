@@ -2,14 +2,91 @@
 <!DOCTYPE html>
 <html lang="fi">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>H0 – Oikeasti netissä</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>H0 – Oikeasti netissä</title>
+    <style>
+        body {
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 0 20px;
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #222;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 16px 0 32px;
+        }
+        pre {
+            background: #f4f4f4;
+            padding: 12px;
+            overflow-x: auto;
+        }
+    </style>
 </head>
 <body>
-  <h1>H0 – Oikeasti netissä</h1>
-  <p>Raportin HTML-sivu toimii.</p>
-  <p><a href="h0.md">Avaa alkuperäinen H0-raportti</a></p>
+
+<h1>H0 – Oikeasti netissä</h1>
+
+<h2>x) Lukutehtävät</h2>
+
+<h3>Niemi (2025): H4 Tehtävät</h3>
+<p>Materiaalissa käsitellään Linux-palvelimen hallintaa ja tietoturvaa. Palvelimen ylläpidossa on tärkeää päivittää ohjelmistot, hallita käyttäjäoikeuksia ja rajoittaa verkkoyhteyksiä palomuurilla. Tarvittavat yhteydet tulee sallia ennen palomuurin käyttöönottoa, jotta etähallinta ei esty.</p>
+
+<h3>Partanen (2025): Harjoitus 5 – Nimekäs</h3>
+<p>Harjoituksessa käsitellään verkkotunnuksen yhdistämistä palvelimeen DNS-asetusten avulla. A-tietueella verkkotunnus ohjataan palvelimen IPv4-osoitteeseen. @ tarkoittaa juuriverkkotunnusta, ja www-tietueella voidaan ohjata myös www-alkuinen osoite samaan palvelimeen.</p>
+
+<h2>a) Debian 13:n asentaminen virtuaalikoneeseen</h2>
+<p>Asensin Debian 13:n paikalliseen virtuaalikoneeseen. Asennuksen jälkeen loin SSH-avainparin komennolla:</p>
+<pre><code>ssh-keygen -t ed25519</code></pre>
+<p>Julkisen avaimen tarkistin komennolla:</p>
+<pre><code>cat ~/.ssh/id_ed25519.pub</code></pre>
+<p>Julkista avainta voidaan käyttää palvelimelle kirjautumiseen. Yksityinen avain pitää säilyttää turvallisesti omalla koneella.</p>
+<img src="kuvat/kuva%202.png" alt="SSH-avainparin luominen">
+
+<h2>b) Virtuaalipalvelimen vuokraaminen</h2>
+<p>Otin käyttöön UpCloudin virtuaalipalvelimen, jossa käytetään Debiania. Palvelimen julkinen IP-osoite on 81.27.96.102. Palvelimen avulla pystyin julkaisemaan verkkopalvelun internetiin ja testaamaan sitä oman tietokoneeni selaimella.</p>
+<img src="kuvat/kuva%201.png" alt="Virtuaalipalvelin">
+
+<h2>c) Palvelimen alkuasetukset ja palomuuri</h2>
+<p>Päivitin palvelimen pakettitiedot ja ohjelmistot:</p>
+<pre><code>sudo apt update
+sudo apt upgrade</code></pre>
+<p>Tämän jälkeen sallin SSH-yhteydet UFW-palomuurissa:</p>
+<pre><code>sudo ufw allow 22/tcp
+sudo ufw enable
+sudo ufw status</code></pre>
+<p>SSH-portin salliminen ennen palomuurin aktivointia on tärkeää, jotta etäyhteys palvelimelle säilyy. Tarkistin lopuksi, että palomuuri oli aktiivinen ja portti 22 sallittu. Myöhemmin sallin myös HTTP-liikenteen porttiin 80 verkkopalvelinta varten.</p>
+<img src="kuvat/kuva3.png" alt="SSH-portin salliminen">
+<img src="kuvat/kuva4.png" alt="UFW-palomuuri">
+
+<h2>d) Apache-verkkopalvelimen asentaminen</h2>
+<p>Asensin Apache-verkkopalvelimen komennolla:</p>
+<pre><code>sudo apt install apache2</code></pre>
+<p>Sallin HTTP-liikenteen porttiin 80:</p>
+<pre><code>sudo ufw allow 80/tcp
+sudo ufw status</code></pre>
+<p>Testasin palvelimen avaamalla selaimessa osoitteen <a href="http://81.27.96.102">http://81.27.96.102</a>. Selaimessa näkyi Apachen oletussivu, mikä vahvisti, että verkkopalvelin vastasi pyyntöihin.</p>
+<img src="kuvat/kuva5.png" alt="Apache-palvelimen oletussivu">
+
+<h2>e) Verkkotunnuksen yhdistäminen palvelimeen</h2>
+<p>Yhdistin verkkotunnuksen arekari.com palvelimen IP-osoitteeseen DNS-asetuksilla. Määritin seuraavat A-tietueet:</p>
+<table>
+    <thead>
+        <tr><th>Nimi</th><th>IP-osoite</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>@</td><td>81.27.96.102</td></tr>
+        <tr><td>www</td><td>81.27.96.102</td></tr>
+    </tbody>
+</table>
+<p>Näin sekä <a href="http://arekari.com">arekari.com</a> että <a href="http://www.arekari.com">www.arekari.com</a> ohjautuvat samaan palvelimeen.</p>
+<p>Testasin verkkotunnuksen selaimessa, ja Apachen oletussivu avautui myös osoitteella arekari.com. Tässä vaiheessa palvelimella oli vielä Apachen oletussivu oman verkkosivun sijaan.</p>
+<img src="kuvat/kuva6.png" alt="DNS A-tietueet">
+<img src="kuvat/kuva7.png" alt="Verkkotunnus toimii">
+
 </body>
 </html>
-
