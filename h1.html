@@ -1,1 +1,130 @@
 
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>H1 – Hei Ansible maailma</title>
+    <style>
+        body {
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 0 20px;
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #222;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 16px 0 32px;
+        }
+        pre {
+            background: #f4f4f4;
+            padding: 12px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+
+<h1>H1 – Hei Ansible maailma</h1>
+
+<h2>x) Lukutehtävät</h2>
+
+<h3>Karvinen (2026): SSH Public Key Login Without a Password</h3>
+<ul>
+    <li>Artikkelissa kerrotaan, miten SSH-yhteyden voi muodostaa julkisen avaimen avulla ilman salasanan kirjoittamista jokaisella kirjautumiskerralla.</li>
+    <li>SSH-avainpariin kuuluu julkinen ja yksityinen avain. Julkinen avain siirretään palvelimelle ja yksityinen avain säilytetään omalla koneella.</li>
+    <li>Avainten luomiseen käytetään <code>ssh-keygen</code>-komentoa ja julkisen avaimen siirtämiseen <code>ssh-copy-id</code>-komentoa.</li>
+</ul>
+<p><strong>Oma huomio:</strong> Aihe oli minulle hyödyllinen, koska pääsin kokeilemaan samoja komentoja käytännössä tässä tehtävässä. Huomasin, että avainkirjautuminen helpottaa kirjautumista huomattavasti. Erityisesti siitä on hyötyä silloin, kun yhteyksiä käytetään automaation kanssa.</p>
+
+<h3>Karvinen (2026): Hello Ansible</h3>
+<ul>
+    <li>Artikkelissa esitellään Ansible, jolla voidaan hallita palvelimia ja suorittaa niillä komentoja etänä.</li>
+    <li>Ansible käyttää SSH-yhteyttä palvelimelle, joten erillistä Ansible-ohjelmaa ei tarvitse asentaa hallittavalle koneelle.</li>
+    <li>Artikkelissa näytetään myös, miten yhteyden toimivuus voidaan tarkistaa <code>ping</code>-moduulilla ja miten palvelimella voidaan suorittaa komentoja.</li>
+</ul>
+<p><strong>Oma huomio:</strong> En ollut aikaisemmin käyttänyt Ansiblea, joten artikkeli auttoi ymmärtämään sen perusidean. Tehtävää tehdessäni kokeilin yhteyden testaamista ja Hello World -tekstin tulostamista. Oli mukava huomata, että sain komennot toimimaan ilman, että minun tarvitsi kirjautua palvelimelle erikseen tekemään niitä.</p>
+
+<h2>a) Debian 13 -virtuaalikone</h2>
+<p>Käytin tehtävässä samaa Debian 13 -virtuaalikonetta, jonka olin asentanut jo aikaisemmassa H0-tehtävässä. Virtuaalikone oli valmiina, joten käyttöjärjestelmää ei tarvinnut asentaa uudelleen.</p>
+<p>Lisätietoja asennuksesta löytyy <a href="h0.html">H0-raportistani</a>.</p>
+
+<h2>b) SSH-palvelimen asentaminen ja testaaminen</h2>
+<p>Aloitin päivittämällä Debianin pakettiluettelot komennolla:</p>
+<pre><code>sudo apt update</code></pre>
+<img src="kuvat/h1-01.png" alt="Pakettiluetteloiden päivittäminen">
+
+<p>Tämän jälkeen tarkistin SSH-palvelimen asennuksen komennolla:</p>
+<pre><code>sudo apt install openssh-server</code></pre>
+<p>SSH-palvelin oli jo valmiiksi asennettuna, joten uutta asennusta ei tarvinnut tehdä.</p>
+<img src="kuvat/h1-02.png" alt="SSH-palvelimen paketin tarkistaminen">
+
+<p>Tarkistin vielä SSH-palvelimen tilan komennolla:</p>
+<pre><code>sudo systemctl status ssh</code></pre>
+<p>Palvelu oli käynnissä ja valmis vastaanottamaan yhteyksiä.</p>
+<img src="kuvat/h1-03.png" alt="SSH-palvelimen tilan tarkistaminen">
+
+<p>Testasin kirjautumista paikalliseen koneeseen komennolla:</p>
+<pre><code>ssh localhost</code></pre>
+<p>Kirjautuminen onnistui.</p>
+<img src="kuvat/h1-04.png" alt="SSH-kirjautumisen testaaminen">
+
+<h2>c) SSH-kirjautumisen automatisointi</h2>
+<p>Seuraavaksi loin uuden SSH-avainparin komennolla:</p>
+<pre><code>ssh-keygen -t ed25519 -f ~/.ssh/h1_ansible</code></pre>
+<p>Jätin avaimelle salasanan asettamatta, jotta sitä voidaan käyttää automaattisessa kirjautumisessa.</p>
+<img src="kuvat/h1-05.png" alt="SSH-avainparin luominen">
+
+<p>Kopioin julkisen avaimen paikalliselle palvelimelle komennolla:</p>
+<pre><code>ssh-copy-id -i ~/.ssh/h1_ansible.pub localhost</code></pre>
+<img src="kuvat/h1-06.png" alt="Julkisen avaimen kopioiminen">
+
+<p>Lopuksi testasin kirjautumista uudella avaimella:</p>
+<pre><code>ssh -i ~/.ssh/h1_ansible -o PasswordAuthentication=no localhost</code></pre>
+<p>Kirjautuminen onnistui ilman käyttäjän salasanan tai avaimen salasanan kysymistä.</p>
+<img src="kuvat/h1-07.png" alt="SSH-kirjautumisen testaaminen uudella avaimella">
+
+<h2>d) Ansible ja Hello World</h2>
+<p>Asensin Ansiblen Debianiin komennolla:</p>
+<pre><code>sudo apt install ansible</code></pre>
+<p>Tarkistin asennuksen komennolla:</p>
+<pre><code>ansible --version</code></pre>
+<img src="kuvat/h1-08.png" alt="Ansiblen version tarkistaminen">
+
+<p>Loin <code>hosts.ini</code>-inventariotiedoston, johon määrittelin paikallisen koneen ja SSH-avaimen käytön.</p>
+<p>Tiedoston sisältö:</p>
+<pre><code>[local]
+localhost ansible_connection=ssh ansible_user=sebastian ansible_ssh_private_key_file=/home/sebastian/.ssh/h1_ansible</code></pre>
+
+<p>Testasin Ansible-yhteyden komennolla:</p>
+<pre><code>ansible -i hosts.ini local -m ping</code></pre>
+<p>Yhteys toimi ja Ansible palautti vastauksen <code>pong</code>.</p>
+<img src="kuvat/h1-09.png" alt="Ansible-yhteyden testaaminen">
+
+<p>Lopuksi suoritin Hello World -komennon:</p>
+<pre><code>ansible -i hosts.ini local -m command -a "echo Hello World"</code></pre>
+<p>Komento onnistui ja tulosti tekstin Hello World.</p>
+<img src="kuvat/h1-10.png" alt="Hello World -komennon suorittaminen">
+
+<h2>Yhteenveto</h2>
+<p>Tehtävän aikana opin käyttämään SSH-avaimia ja automatisoimaan kirjautumisen. Lisäksi tutustuin Ansibleen ja kokeilin komentojen suorittamista sen avulla. Sain käytännön vaiheet toimimaan, ja samalla ymmärsin paremmin, miten palvelimen hallintaa voidaan automatisoida.</p>
+
+<h2>Lähteet</h2>
+<ul>
+    <li>Karvinen, Tero. <a href="https://terokarvinen.com/ssh-public-key-login-without-password/">SSH Public Key Login Without a Password</a>.</li>
+    <li>Karvinen, Tero. <a href="https://terokarvinen.com/hello-ansible/">Hello Ansible</a>.</li>
+    <li>Debian Wiki. <a href="https://wiki.debian.org/SSH">SSH</a>.</li>
+    <li>Debian Wiki. <a href="https://wiki.debian.org/Ansible">Ansible</a>.</li>
+    <li>Ansible Documentation. <a href="https://docs.ansible.com/projects/ansible/latest/installation_guide/installation_distros.html">Installing Ansible on specific operating systems</a>.</li>
+    <li>Debian Wiki. <a href="https://wiki.debian.org/Setup%20SSH%20Passwordless%20Login">Setup SSH Passwordless Login</a>.</li>
+</ul>
+
+<p>Lähteet luettu 3.11.2026.</p>
+
+</body>
+</html>
+
