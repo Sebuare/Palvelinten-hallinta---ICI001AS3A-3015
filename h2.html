@@ -1,1 +1,502 @@
 
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>H2 – Voileipä: Ansible ja Linux-palvelimen hallinta</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.7;
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 0 20px;
+            color: #333;
+            background-color: #f5f5f5;
+        }
+
+        main {
+            background-color: white;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+        }
+
+        h1, h2, h3 {
+            color: #222;
+        }
+
+        h1 {
+            border-bottom: 2px solid #333;
+            padding-bottom: 12px;
+        }
+
+        h2 {
+            margin-top: 40px;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 6px;
+        }
+
+        h3 {
+            margin-top: 25px;
+        }
+
+        p {
+            margin: 15px 0;
+        }
+
+        code {
+            background-color: #f0f0f0;
+            padding: 2px 5px;
+            border-radius: 4px;
+            font-family: Consolas, monospace;
+        }
+
+        pre {
+            background-color: #272822;
+            color: #f8f8f2;
+            padding: 16px;
+            border-radius: 6px;
+            overflow-x: auto;
+            line-height: 1.5;
+        }
+
+        pre code {
+            background: none;
+            color: inherit;
+            padding: 0;
+        }
+
+        figure {
+            margin: 25px 0;
+            text-align: center;
+        }
+
+        figure img {
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        figcaption {
+            font-size: 14px;
+            color: #666;
+            margin-top: 8px;
+        }
+
+        hr {
+            border: none;
+            border-top: 1px solid #ddd;
+            margin: 35px 0;
+        }
+
+        @media (max-width: 600px) {
+            body {
+                margin: 10px auto;
+                padding: 0 10px;
+            }
+
+            main {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+<main>
+
+<h1>H2 – Voileipä: Ansible ja Linux-palvelimen hallinta</h1>
+
+<h2>Johdanto</h2>
+
+<p>
+Tehtävän tavoitteena oli oppia käyttämään Ansiblea Linux-palvelimen hallintaan
+ja ymmärtää, kuinka tavallisia ylläpitotehtäviä voidaan automatisoida.
+</p>
+
+<p>
+Työskentelin käyttäjällä sebastian, joka toimi Ansible-ohjauskoneena.
+Hallittavana käyttäjänä käytin antero-käyttäjää. Ansible suoritti tehtävät
+paikalliselle koneelle SSH-yhteyden kautta (localhost).
+</p>
+
+<hr>
+
+<h2>x) Tiivistelmät ja moduuleihin tutustuminen</h2>
+
+<h3>Sudo without password</h3>
+
+<p>
+Artikkelissa käsitellään salasanattoman sudo-oikeuden määrittämistä Linuxissa.
+Käyttäjälle voidaan antaa oikeus suorittaa ylläpitäjän komentoja ilman salasanan
+kysymistä. Tämä helpottaa esimerkiksi Ansible-automaatiota, jossa komentoja
+suoritetaan ilman jatkuvaa manuaalista kirjautumista.
+</p>
+
+<h3>xkcd 149 – Sandwitch</h3>
+
+<p>
+Sarjakuva käsittelee huumorilla Linuxin sudo-oikeuksia. Siinä käyttäjä pyytää
+järjestelmää tekemään voileivän ja saa vastaukseksi, että hänen täytyy käyttää
+sudo-komentoa.
+</p>
+
+<h3>Passwordless Sudo with Ansible</h3>
+
+<p>
+Artikkelissa esitellään, kuinka salasanaton sudo-oikeus voidaan määrittää
+Ansiblella. Ansiblella voidaan luoda käyttäjä, määrittää hänelle tarvittavat
+ryhmät ja lisätä sudo-oikeudet automaattisesti. Näin järjestelmän asetukset
+voidaan tehdä ilman manuaalisia komentoja.
+</p>
+
+<h3>Ansible-moduuleihin tutustuminen</h3>
+
+<p>
+Tutustuin Ansible-moduulien dokumentaatioon ansible-doc-komennolla.
+Seuraavat moduulit ovat hyödyllisiä palvelimen hallinnassa:
+</p>
+
+<ul>
+    <li><strong>copy:</strong> Kopioi tiedostoja tai luo tiedostoja suoraan
+    määritellyllä sisällöllä. Parametreilla voidaan määrittää esimerkiksi
+    kohdepolku, omistaja ja käyttöoikeudet.</li>
+
+    <li><strong>apt:</strong> Hallitsee Debian- ja Ubuntu-järjestelmien
+    ohjelmistopaketteja. Parametreilla name ja state voidaan määrittää
+    asennettava ohjelma ja sen tila. update_cache päivittää pakettivarastojen
+    tiedot.</li>
+
+    <li><strong>file:</strong> Hallitsee tiedostoja, hakemistoja ja symbolisia
+    linkkejä. Parametreilla voidaan määrittää esimerkiksi polku, omistaja,
+    ryhmä ja käyttöoikeudet.</li>
+
+    <li><strong>user:</strong> Luo, muokkaa ja poistaa käyttäjätilejä.
+    Parametreilla voidaan määrittää esimerkiksi käyttäjänimi, kotihakemisto,
+    ryhmät ja komentotulkki.</li>
+
+    <li><strong>authorized_key:</strong> Lisää käyttäjän SSH-julkisen avaimen
+    authorized_keys-tiedostoon, jolloin käyttäjä voi kirjautua palvelimelle
+    SSH-avaimella.</li>
+</ul>
+
+<hr>
+
+<h2>a) Salasanaton sudo</h2>
+
+<p>
+Ensimmäisessä tehtävässä loin uuden käyttäjän nimeltä antero ja määritin
+hänelle salasanattoman sudo-oikeuden. Tätä varten loin ensin käyttäjän ja
+uuden sudoless-ryhmän, johon lisäsin käyttäjän. Ryhmän avulla voidaan
+määrittää sudo-oikeudet usealle käyttäjälle keskitetysti.
+</p>
+
+<p>Loin käyttäjän komennolla:</p>
+
+<pre><code>sudo adduser antero</code></pre>
+
+<p>Seuraavaksi loin ryhmän ja lisäsin käyttäjän siihen:</p>
+
+<pre><code>sudo addgroup sudoless
+sudo usermod -aG sudoless antero</code></pre>
+
+<p>Tarkistin vielä, että käyttäjä oli lisätty oikeaan ryhmään:</p>
+
+<pre><code>groups antero</code></pre>
+
+<figure>
+    <img src="kuvat/h2-01.png" alt="Antero-käyttäjän luominen">
+    <figcaption>Kuva 1. Antero-käyttäjän luominen.</figcaption>
+</figure>
+
+<figure>
+    <img src="kuvat/h2-02.png" alt="Sudoless-ryhmän luominen">
+    <figcaption>Kuva 2. Sudoless-ryhmän luominen ja käyttäjän lisääminen ryhmään.</figcaption>
+</figure>
+
+<p>
+Seuraavaksi määritin ryhmälle salasanattoman sudo-oikeuden luomalla uuden
+määritystiedoston hakemistoon <code>/etc/sudoers.d/</code>.
+</p>
+
+<pre><code>sudo visudo -f /etc/sudoers.d/sudoless</code></pre>
+
+<p>Lisäsin tiedostoon seuraavan rivin:</p>
+
+<pre><code>%sudoless ALL=(ALL:ALL) NOPASSWD: ALL</code></pre>
+
+<p>
+Määritys tarkoittaa, että sudoless-ryhmään kuuluvat käyttäjät voivat suorittaa
+komentoja sudolla ilman salasanan kysymistä.
+</p>
+
+<figure>
+    <img src="kuvat/h2-03.png" alt="Sudoers-määritys">
+    <figcaption>Kuva 3. Sudoers-määritys.</figcaption>
+</figure>
+
+<p>
+Tämän jälkeen varmistin, että tiedoston käyttöoikeudet olivat oikeat.
+Sudoers-tiedoston oikeuksien tulee olla rajatut, jotta muut käyttäjät eivät
+voi muokata sitä.
+</p>
+
+<pre><code>sudo chmod 0440 /etc/sudoers.d/sudoless
+sudo visudo -c</code></pre>
+
+<p>
+Lopuksi testasin, että käyttäjä pystyi suorittamaan sudo-komentoja ilman
+salasanan kysymistä:
+</p>
+
+<pre><code>sudo -u antero sudo whoami</code></pre>
+
+<p>
+Komento tulosti <code>root</code>, mikä osoitti, että salasanaton sudo-oikeus
+toimi oikein.
+</p>
+
+<figure>
+    <img src="kuvat/h2-04.png" alt="Sudoers-tiedoston oikeuksien korjaaminen ja tarkistus">
+    <figcaption>Kuva 4. Sudoers-tiedoston oikeuksien korjaaminen ja tarkistus.</figcaption>
+</figure>
+
+<figure>
+    <img src="kuvat/h2-05.png" alt="Salasanattoman sudon testaaminen">
+    <figcaption>Kuva 5. Salasanattoman sudon testaaminen.</figcaption>
+</figure>
+
+<h2>b) Salasanaton SSH-kirjautuminen Ansiblella</h2>
+
+<p>
+Toisessa tehtävässä toteutin käyttäjän antero luomisen ja SSH-kirjautumisen
+määrittämisen Ansiblella. Tavoitteena oli, että käyttäjä pystyy kirjautumaan
+palvelimelle SSH-avaimella ilman salasanan syöttämistä.
+</p>
+
+<p>
+Loin Ansible-projektiin roolin nimeltä antero. Roolin tehtävät määritin
+tiedostoon <code>roles/antero/tasks/main.yml</code>. Tehtävätiedostossa
+käytin muun muassa group-, user-, authorized_key- ja copy-moduuleja.
+</p>
+
+<p>
+Group-moduulilla luodaan tarvittava ryhmä ja user-moduulilla käyttäjä.
+Authorized_key-moduulilla lisätään käyttäjän julkinen SSH-avain tämän
+kotihakemiston valtuutettujen avainten tiedostoon. Copy-moduulilla voidaan
+puolestaan kopioida tarvittavia tiedostoja palvelimelle.
+</p>
+
+<figure>
+    <img src="kuvat/h2-06.png" alt="Antero-roolin tehtävätiedosto">
+    <figcaption>Kuva 6. Antero-roolin tehtävätiedosto.</figcaption>
+</figure>
+
+<p>
+Tämän jälkeen määritin site.yml-tiedostoon, että Ansible suorittaa
+antero-roolin kaikille inventaariossa määritetyille palvelimille.
+Käytin myös <code>become: true</code> -asetusta, jotta tehtävät voitiin
+suorittaa tarvittavilla ylläpitäjän oikeuksilla.
+</p>
+
+<figure>
+    <img src="kuvat/h2-07.png" alt="site.yml-tiedosto">
+    <figcaption>Kuva 7. site.yml-tiedosto.</figcaption>
+</figure>
+
+<p>Suoritin playbookin seuraavalla komennolla:</p>
+
+<pre><code>ansible-playbook -i hosts.ini site.yml --ask-become-pass</code></pre>
+
+<p>
+Playbook suoritti määritetyt tehtävät onnistuneesti. Näin Ansible loi
+käyttäjän ja määritti SSH-avaimen käyttöön.
+</p>
+
+<figure>
+    <img src="kuvat/h2-08.png" alt="Ansible-playbookin onnistunut suoritus">
+    <figcaption>Kuva 8. Ansible-playbookin onnistunut suoritus.</figcaption>
+</figure>
+
+<p>Lopuksi testasin SSH-kirjautumisen käyttäjällä antero:</p>
+
+<pre><code>ssh antero@localhost</code></pre>
+
+<p>Kirjautumisen jälkeen testasin vielä sudo-oikeuden toiminnan:</p>
+
+<pre><code>sudo -k
+sudo whoami</code></pre>
+
+<p>
+Komento tulosti <code>root</code>, joten sekä SSH-kirjautuminen että
+salasanaton sudo toimivat onnistuneesti.
+</p>
+
+<figure>
+    <img src="kuvat/h2-09.png" alt="SSH-kirjautumisen ja sudo-oikeuden testaaminen">
+    <figcaption>Kuva 9. SSH-kirjautumisen ja sudo-oikeuden testaaminen.</figcaption>
+</figure>
+
+<h2>c) Ohjelmistojen asentaminen Ansiblella</h2>
+
+<p>
+Kolmannessa tehtävässä asensin kaksi ohjelmistoa Ansiblella. Valitsin
+asennettaviksi ohjelmiksi treen ja cowsayn. Käytin asennukseen Ansible-ohjelman
+apt-moduulia, jonka avulla voidaan hallita Debian-pohjaisten järjestelmien
+paketteja.
+</p>
+
+<p>
+Määritin tehtävät Ansible-roolin tehtävätiedostoon. Apt-moduulissa käytin
+name-asetusta määrittämään asennettavat paketit ja state: present -asetusta
+varmistamaan, että paketit ovat asennettuina. Lisäksi käytin
+update_cache: true -asetusta, joka päivittää pakettivarastojen tiedot
+ennen asennusta.
+</p>
+
+<p>Suoritin asennukset playbookin avulla:</p>
+
+<pre><code>ansible-playbook -i hosts.ini site.yml --ask-become-pass</code></pre>
+
+<figure>
+    <img src="kuvat/h2-10.png" alt="Tree- ja cowsay-pakettien asentaminen Ansiblella">
+    <figcaption>Kuva 10. Tree- ja cowsay-pakettien asentaminen Ansiblella.</figcaption>
+</figure>
+
+<p>
+Asennuksen jälkeen tarkistin, että ohjelmat toimivat oikein. Testasin treen
+version seuraavalla komennolla:
+</p>
+
+<pre><code>tree --version</code></pre>
+
+<p>Cowsay-ohjelman testasin tulostamalla sillä viestin:</p>
+
+<pre><code>cowsay "Ansible toimii!"</code></pre>
+
+<p>
+Molemmat ohjelmat toimivat odotetusti, joten asennus onnistui.
+</p>
+
+<figure>
+    <img src="kuvat/h2-11.png" alt="Tree- ja cowsay-ohjelmien testaaminen">
+    <figcaption>Kuva 11. Tree- ja cowsay-ohjelmien testaaminen.</figcaption>
+</figure>
+
+<h2>d) Tiedoston kopioiminen ja oikeuksien määrittäminen</h2>
+
+<p>
+Neljännessä tehtävässä loin Ansiblella monirivisen tekstitiedoston ja
+määritin sille omistajan, ryhmän sekä käyttöoikeudet. Käytin tehtävässä
+copy-moduulia, jolla voidaan luoda tai kopioida tiedostoja palvelimelle.
+</p>
+
+<p>
+Määritin tiedoston sisällön content-asetuksella ja kohdepolun dest-asetuksella.
+Lisäksi asetin tiedoston omistajaksi ja ryhmäksi antero-käyttäjän.
+Käyttöoikeudet määritin oktaalimuodossa arvolla 0640.
+</p>
+
+<p>Alla on esimerkki käytetystä YAML-määrityksestä:</p>
+
+<pre><code>---
+- name: Copy example file
+  copy:
+    dest: /home/antero/esimerkki.txt
+    content: |
+      Tämä on Ansiblella kopioitu tiedosto.
+      Tiedoston omistaja ja ryhmä määritetään erikseen.
+      Tiedoston käyttöoikeudet asetetaan oktaalimuodossa.
+    owner: antero
+    group: antero
+    mode: "0640"</code></pre>
+
+<p>
+Käyttöoikeus 0640 tarkoittaa, että tiedoston omistajalla on luku- ja
+kirjoitusoikeus, ryhmällä on lukuoikeus ja muilla käyttäjillä ei ole oikeuksia
+tiedostoon.
+</p>
+
+<p>
+Symbolisessa muodossa oikeudet ovat <code>rw-r-----</code>. Oktaalimuodossa
+numero 6 tarkoittaa luku- ja kirjoitusoikeutta, numero 4 lukuoikeutta ja
+numero 0 sitä, ettei käyttöoikeuksia anneta.
+</p>
+
+<p>
+Suoritin playbookin ja tarkistin, että tiedosto luotiin onnistuneesti
+oikeaan hakemistoon.
+</p>
+
+<figure>
+    <img src="kuvat/h2-12.png" alt="Tiedoston kopioinnin onnistunut suoritus">
+    <figcaption>Kuva 12. Tiedoston kopioinnin onnistunut suoritus.</figcaption>
+</figure>
+
+<p>
+Tarkistin lopuksi tiedoston sisällön ja varmistin, että tiedosto oli luotu
+oikeilla tiedoilla.
+</p>
+
+<figure>
+    <img src="kuvat/h2-13.png" alt="Kopioidun tiedoston sisällön tarkistaminen">
+    <figcaption>Kuva 13. Kopioidun tiedoston sisällön tarkistaminen.</figcaption>
+</figure>
+
+<h2>e) Debug-moduulin käyttäminen</h2>
+
+<p>
+Tässä tehtävässä käytin Ansible-ohjelman debug-moduulia, jolla voidaan
+tulostaa viestejä playbookin suorittamisen aikana. Moduuli on hyödyllinen
+esimerkiksi tehtävien testaamisessa ja virheiden selvittämisessä. Sen avulla
+voidaan tarkistaa, että playbook suorittaa tehtävät halutussa järjestyksessä
+ja että tarvittavat tiedot tulostuvat oikein.
+</p>
+
+<p>
+Lisäsin debug-moduulin Ansible-tehtävään, jossa tulostetaan itse määrittämäni
+viesti:
+</p>
+
+<pre><code>- name: Test debug module
+  debug:
+    msg: "Ansible debug-moduuli toimii!"</code></pre>
+
+<p>Suoritin playbookin komennolla:</p>
+
+<pre><code>ansible-playbook -i hosts.ini site.yml --ask-become-pass</code></pre>
+
+<p>
+Playbookin suorittamisen jälkeen Ansible tulosti määrittämäni viestin
+terminaaliin. Tulosteen perusteella pystyin varmistamaan, että debug-moduuli
+toimi oikein. Tehtävä osoitti, kuinka Ansiblella voidaan tulostaa tietoa
+suorituksen aikana ilman, että palvelimelle tarvitsee luoda erillisiä
+tiedostoja.
+</p>
+
+<figure>
+    <img src="kuvat/h2-14.png" alt="Debug-moduulin suoritus ja tulostettu viesti">
+    <figcaption>Kuva 14. Debug-moduulin suoritus ja tulostettu viesti.</figcaption>
+</figure>
+
+<hr>
+
+<h2>Lähteet</h2>
+
+<ul>
+    <li>Karvinen, Tero. <em>Sudo without password</em>.</li>
+    <li>Munroe, Randall. 2006. <em>xkcd 149 – Sandwitch</em>.
+        <a href="https://xkcd.com/149/">https://xkcd.com/149/</a>
+    </li>
+    <li>Karvinen, Tero. <em>Passwordless Sudo with Ansible</em>.</li>
+    <li>ChatGPT:tä käytetty käsitteiden ja käskyjen avaamiseen.</li>
+</ul>
+
+</main>
+</body>
+</html>
+
