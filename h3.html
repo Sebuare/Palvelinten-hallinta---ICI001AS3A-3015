@@ -1,1 +1,278 @@
+<!doctype html>
+<html lang="fi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>H3 – Demoni</title>
+  <style>
+    body {
+      max-width: 900px;
+      margin: 40px auto;
+      padding: 0 22px;
+      font-family: Arial, Helvetica, sans-serif;
+      line-height: 1.7;
+      color: #222;
+    }
+    img {
+      display: block;
+      max-width: 100%;
+      height: auto;
+      margin: 22px auto;
+    }
+    pre {
+      overflow-x: auto;
+      padding: 16px;
+      background: #f4f4f4;
+      border-radius: 6px;
+    }
+    code {
+      font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    }
+    :not(pre) > code {
+      background: #f1f1f1;
+      padding: 2px 5px;
+      border-radius: 4px;
+    }
+    hr {
+      border: 0;
+      border-top: 1px solid #ddd;
+      margin: 30px 0;
+    }
+  </style>
+</head>
+<body>
 
+<h1>H3 – Demoni</h1>
+<hr />
+<h2>x) Tiivistelmät</h2>
+
+<h3>Apache installed with Ansible – quick notes</h3>
+<p>Tero Karvisen artikkelissa käsitellään Apache-web-palvelimen asentamista Ansiblella. Artikkelissa käydään läpi palvelimen asennuksen ja hallinnan perusperiaatteita. Ansiblella voidaan esimerkiksi asentaa ohjelmistoja, kopioida asetustiedostoja ja varmistaa, että palvelu on käynnissä.</p>
+<p>Opin, että palvelimen hallinta voidaan jakaa eri osiin: ohjelmiston asentamiseen, asetusten määrittämiseen ja palvelun käynnistämiseen. Tämä tekee palvelimen käyttöönotosta helpommin toistettavaa.</p>
+
+<h3>Ansible Documentation – Handlers</h3>
+<p>Ansible-dokumentaation handlers-osiossa käsitellään tehtäviä, jotka suoritetaan vain silloin, kun jokin toinen tehtävä ilmoittaa muutoksesta. Tästä käytetään <code>notify</code>-asetusta.</p>
+<p>Esimerkiksi jos Ansible muuttaa Nginxin asetustiedostoa, se voi ilmoittaa handlerille, joka käynnistää Nginxin uudelleen. Handleria ei siis suoriteta turhaan jokaisella playbookin ajokerralla, vaan ainoastaan silloin, kun sitä tarvitaan.</p>
+
+<h3>ansible-doc service</h3>
+<p>Tutustuin Debianin terminaalissa <code>ansible-doc service</code> -komennolla service-moduulin dokumentaatioon. Moduulilla voidaan hallita Linux-palveluita.</p>
+<p>Keskeisiä asetuksia ovat:</p>
+<ul>
+<li><code>name</code>: määrittää hallittavan palvelun nimen.</li>
+<li><code>state</code>: määrittää palvelun halutun tilan, esimerkiksi <code>started</code> tai <code>stopped</code>.</li>
+<li><code>enabled</code>: määrittää, käynnistyykö palvelu automaattisesti järjestelmän käynnistyessä.</li>
+</ul>
+<p>Näitä asetuksia käytin myöhemmin Nginxin hallintaan Ansiblella.</p>
+
+<hr />
+
+<p><strong>y) Hackernews: N-able korjaa 17 N-central-järjestelmän tietoturva-aukkoa</strong></p>
+<p>Valitsin The Hacker News -sivustolta 17.11.2026 julkaistun uutisen, joka käsittelee N-ablen N-central-hallintajärjestelmästä löytyneitä tietoturva-aukkoja.</p>
+<p>N-central on etähallinta-alusta, jonka avulla IT-ylläpitäjät voivat valvoa ja hallita laitteita etänä.</p>
+<p>N-able julkaisi järjestelmälle tietoturvapäivityksen, joka korjaa yhteensä 17 haavoittuvuutta.</p>
+<p>Haavoittuvuudet liittyivät muun muassa tunnistautumiseen, käyttöoikeuksiin, tiedostojen käsittelyyn ja palvelimen tietoturvaan.</p>
+<p>Aiemmin löydettyjä haavoittuvuuksia oli jo hyödynnetty hyökkäyksissä, joissa haavoittuville palvelimille asennettiin kryptovaluuttojen louhintaohjelmia.</p>
+<p>N-able suosittelee päivittämään palvelimet, agentit ja proberatkaisut uusimpiin versioihin, jotta järjestelmät olisivat suojattuja.</p>
+<p>Oma huomio: Uutinen havainnollistaa, kuinka tärkeää keskitettyjen hallintajärjestelmien tietoturvasta huolehtiminen on. Niiden avulla voidaan hallita useita laitteita samasta paikasta, mutta samalla järjestelmään kohdistuva hyökkäys voi aiheuttaa ongelmia monille laitteille. Siksi päivityksistä ja käyttöoikeuksista huolehtiminen on tärkeää.</p>
+<p>linkki: https://thehackernews.com/2026/11/n-able-patches-17-n-central-flaws-as.html?</p>
+
+<hr />
+
+<h2>a) Apassi</h2>
+<p>Ensimmäisessä tehtävässä asensin Apache-web-palvelimen Debianille. Apache on web-palvelinohjelmisto, jonka avulla voidaan julkaista verkkosivuja selaimella katseltavaksi.</p>
+<p>Aloitin asentamalla Apachen paketinhallinnan avulla:</p>
+<pre><code class="language-bash">sudo apt update
+sudo apt install apache2
+</code></pre>
+<p><code>apt update</code> päivittää pakettilähteiden tiedot. <code>apt install apache2</code> asentaa Apache-palvelimen. <code>sudo</code> tarvitaan, koska ohjelmistojen asentaminen vaatii ylläpitäjän oikeudet.</p>
+<p><img src="kuvat/h3-01.png" alt="Kuva X: Kuvan sisältö" /></p>
+
+<p>Asennuksen jälkeen tarkistin palvelun tilan:</p>
+<pre><code class="language-bash">systemctl status apache2
+</code></pre>
+<p>Komento näyttää, onko Apache käynnissä. Varmistin myös, että palvelin vastasi paikallisesti:</p>
+<pre><code class="language-bash">curl http://localhost
+</code></pre>
+<p>Curl-komennolla voidaan tehdä HTTP-pyyntö verkkopalvelimelle. Vastauksena sain verkkosivun HTML-sisällön.</p>
+<p><img src="kuvat/h3-09.png" alt="Kuva X: Kuvan sisältö" /></p>
+
+<p>Seuraavaksi loin oman verkkosivuhakemiston ja HTML-tiedoston:</p>
+<pre><code class="language-bash">mkdir ~/publicsite
+nano ~/publicsite/index.html
+</code></pre>
+<p><code>mkdir</code> luo uuden hakemiston ja <code>nano</code> avaa tekstieditorin, jolla tiedostoa voidaan muokata. Tein <code>index.html</code>-tiedostoon yksinkertaisen verkkosivun, jossa oli otsikko ja tekstiä.</p>
+<p><img src="kuvat/h3-04.png" alt="Kuva X: Kuvan sisältö" /></p>
+
+<p>Jotta Apache näyttäisi oman verkkosivuni oletussivun sijasta, muokkasin Apachen oletussivuston asetustiedostoa:</p>
+<pre><code class="language-bash">sudo nano /etc/apache2/sites-available/000-default.conf
+</code></pre>
+<p>Muokkasin <code>DocumentRoot</code>-asetuksen osoittamaan omaan hakemistooni:</p>
+<pre><code class="language-apache">DocumentRoot /home/sebastian/publicsite
+
+&lt;Directory /home/sebastian/publicsite&gt;
+    Require all granted
+&lt;/Directory&gt;
+</code></pre>
+<p><code>DocumentRoot</code> määrittää hakemiston, josta Apache hakee verkkosivun tiedostot. <code>Require all granted</code> sallii verkkopalvelimen käyttää kyseistä hakemistoa.</p>
+<p><img src="kuvat/h3-05.png" alt="Kuva X: Kuvan sisältö" /></p>
+
+<p>Tarkistin asetusten oikeellisuuden ennen palvelimen uudelleenkäynnistämistä:</p>
+<pre><code class="language-bash">sudo apache2ctl configtest
+</code></pre>
+<p>Komento tarkistaa Apachen asetustiedoston syntaksin. Tuloksena sain ilmoituksen <code>Syntax OK</code>, joten asetuksissa ei ollut havaittuja syntaksivirheitä.</p>
+<p><img src="kuvat/h3-06.png" alt="Kuva X: Kuvan sisältö" /></p>
+
+<p>Seuraavaksi määritin hakemistojen ja tiedoston käyttöoikeudet:</p>
+<pre><code class="language-bash">chmod ugo+x /home/sebastian/
+chmod ugo+x /home/sebastian/publicsite/
+chmod ugo+r /home/sebastian/publicsite/index.html
+</code></pre>
+<p><code>chmod</code> muuttaa tiedostojen ja hakemistojen käyttöoikeuksia. Hakemistoihin annettu <code>x</code>-oikeus mahdollistaa niiden läpi kulkemisen. HTML-tiedoston <code>r</code>-oikeus sallii sen lukemisen.</p>
+<p>Tarkoituksena oli, että oma käyttäjäni pystyy muokkaamaan verkkosivua ilman sudo-oikeuksia ja Apache pystyy lukemaan sen sisällön.</p>
+<p><img src="kuvat/h3-08.png" alt="Kuva X: Kuvan sisältö" /></p>
+
+<p>Lopuksi testasin verkkosivun toiminnan selaimella. VirtualBoxin NAT-verkkotilaan oli määritetty porttiohjaus, jonka avulla pääsin virtuaalikoneen web-palvelimelle Macin selaimesta osoitteella <code>http://localhost:8080</code>.</p>
+<p><img src="kuvat/h3-23.png" alt="Kuva X: Kuvan sisältö" /></p>
+
+<hr />
+
+<h2>b) Moottorix</h2>
+<p>Toisessa tehtävässä asensin Nginx-web-palvelimen. Nginx on Apacheen verrattava web-palvelinohjelmisto, jolla voidaan julkaista verkkosivuja.</p>
+<p>Ennen Nginxin asentamista pysäytin Apachen, koska molemmat palvelimet yrittäisivät käyttää samaa oletusporttia 80:</p>
+<pre><code class="language-bash">sudo systemctl stop apache2
+</code></pre>
+<p><code>systemctl stop</code> pysäyttää määritetyn palvelun.</p>
+<p><img src="kuvat/h3-10.png" alt="Kuva X: Kuvan sisältö" /></p>
+
+<p>Asensin Nginxin seuraavilla komennoilla:</p>
+<pre><code class="language-bash">sudo apt update
+sudo apt install nginx
+</code></pre>
+<p>Tämän jälkeen tarkistin Nginxin tilan:</p>
+<pre><code class="language-bash">systemctl status nginx
+</code></pre>
+<p><img src="kuvat/h3-11.png" alt="Kuva X: Kuvan sisältö" /></p>
+
+<p>Seuraavaksi muokkasin Nginxin oletussivuston asetustiedostoa:</p>
+<pre><code class="language-bash">sudo nano /etc/nginx/sites-available/default
+</code></pre>
+<p>Etsin tiedostosta <code>root</code>-asetuksen ja vaihdoin sen osoittamaan aiemmin luomaani verkkosivuhakemistoon:</p>
+<pre><code class="language-nginx">root /home/sebastian/publicsite;
+</code></pre>
+<p><code>root</code> määrittää hakemiston, josta Nginx hakee verkkosivun tiedostot. Näin molemmat web-palvelimet käyttävät samaa HTML-tiedostoa.</p>
+<p><img src="kuvat/h3-12.png" alt="Kuva X: Kuvan sisältö" /></p>
+
+<p>Tarkistin asetustiedoston syntaksin:</p>
+<pre><code class="language-bash">sudo nginx -t
+</code></pre>
+<p>Komento tarkistaa Nginxin asetukset ennen niiden käyttöönottoa. Tuloksena sain ilmoituksen, että syntaksi oli kunnossa ja testi onnistui.</p>
+<p><img src="kuvat/h3-13.png" alt="Kuva X: Kuvan sisältö" /></p>
+
+<p>Tämän jälkeen varmistin, että Nginx oli käynnissä ja Apache pysäytettynä:</p>
+<pre><code class="language-bash">systemctl is-active nginx apache2
+</code></pre>
+<p>Komento tulosti Nginxin kohdalla <code>active</code> ja Apachen kohdalla <code>inactive</code>. Tämä varmisti, että Nginx oli käytössä ja Apache ei ollut käynnissä.</p>
+<p><img src="kuvat/h3-24.png" alt="Kuva X: Kuvan sisältö" /></p>
+
+<p>Testasin vielä verkkosivun toiminnan selaimella osoitteessa <code>http://localhost:8080</code>. Sivu avautui onnistuneesti myös Nginxin kautta. Tuli kuitenkin vielä apachen teksti ja en saanut sitä korjattua.</p>
+<p><img src="kuvat/h3-23.png" alt="Kuva X: Kuvan sisältö" /></p>
+
+<hr />
+
+<h2>c) Automoottorix</h2>
+<p>Kolmannessa tehtävässä automatisoin Nginxin asennuksen ja käynnistämisen Ansiblella. Ansiblella voidaan hallita Linux-palvelimia playbook-tiedostojen avulla. Playbook sisältää YAML-muodossa määritellyt tehtävät, jotka Ansible suorittaa järjestyksessä.</p>
+<p>Loin tehtävää varten oman projektihakemiston:</p>
+<pre><code class="language-bash">mkdir ~/h3-demoni
+cd ~/h3-demoni
+</code></pre>
+<p><code>mkdir</code> luo projektihakemiston ja <code>cd</code> siirtyy siihen.</p>
+
+<p>Loin projektihakemistoon inventaariotiedoston:</p>
+<pre><code class="language-bash">nano hosts.ini
+</code></pre>
+<p>Lisäsin tiedostoon seuraavan rivin:</p>
+<pre><code class="language-ini">localhost
+</code></pre>
+<p>Inventaario kertoo Ansibelle, mitä koneita hallitaan. Tässä tehtävässä käytin paikallista Debian-virtuaalikonetta, joten kohteena oli <code>localhost</code>.</p>
+
+<p>Testasin yhteyden Ansiblella:</p>
+<pre><code class="language-bash">ansible all -m ping -i hosts.ini
+</code></pre>
+<p>Komennossa <code>-m ping</code> suorittaa Ansible-ping-moduulin ja <code>-i hosts.ini</code> määrittää käytettävän inventaariotiedoston. Tulokseksi sain <code>SUCCESS</code> ja <code>pong</code>, mikä osoitti, että Ansible pystyi suorittamaan tehtäviä paikallisella koneella.</p>
+
+<p>Ansible-yhteyden testaaminen
+<img src="kuvat/h3-16.png" alt="Kuva X: Kuvan sisältö" />
+Tutustuin myös apt-moduulin dokumentaatioon:</p>
+<pre><code class="language-bash">ansible-doc apt
+</code></pre>
+<p>Komento avaa apt-moduulin ohjeet. Sen avulla tarkistin, miten ohjelmistopaketteja hallitaan Ansiblella.</p>
+
+<p>Seuraavaksi loin playbook-tiedoston:</p>
+<pre><code class="language-bash">nano site.yml
+</code></pre>
+<p>Kirjoitin tiedostoon seuraavan sisällön:</p>
+<pre><code class="language-yaml">---
+- name: Install and Start Nginx
+  hosts: localhost
+  become: yes
+
+  tasks:
+    - name: Install nginx
+      apt:
+        name: nginx
+        state: present
+        update_cache: yes
+
+    - name: Start and enable nginx
+      service:
+        name: nginx
+        state: started
+        enabled: yes
+</code></pre>
+<p>Playbookin alussa määritetään tehtävän nimi ja kohdekone. <code>become: yes</code> tarkoittaa, että Ansible suorittaa tehtävät ylläpitäjän oikeuksilla.</p>
+<p>Ensimmäisessä tehtävässä käytetään <code>apt</code>-moduulia Nginxin asentamiseen. <code>name: nginx</code> määrittää asennettavan paketin, <code>state: present</code> varmistaa, että paketti on asennettuna ja <code>update_cache: yes</code> päivittää pakettivarastojen tiedot.</p>
+<p>Toisessa tehtävässä käytetään <code>service</code>-moduulia. <code>state: started</code> varmistaa, että Nginx on käynnissä. <code>enabled: yes</code> puolestaan määrittää, että palvelu käynnistyy automaattisesti järjestelmän käynnistyessä.</p>
+
+<p>site.yml-tiedoston sisältö
+<img src="kuvat/h3-21.png" alt="Kuva X: Kuvan sisältö" />
+Tarkistin vielä service-moduulin dokumentaation:</p>
+<pre><code class="language-bash">ansible-doc service
+</code></pre>
+<p>Komento avaa palveluiden hallintaan tarkoitetun moduulin ohjeet. Tutustuin erityisesti asetuksiin <code>name</code>, <code>state</code> ja <code>enabled</code>, joita käytin playbookissa.</p>
+
+<p>Ennen playbookin suorittamista tarkistin YAML-tiedoston syntaksin:</p>
+<pre><code class="language-bash">ansible-playbook -i hosts.ini site.yml --syntax-check
+</code></pre>
+<p><code>--syntax-check</code> tarkistaa playbookin rakenteen ja syntaksin suorittamatta varsinaisia tehtäviä. Komento ilmoitti, että playbook oli kunnossa.</p>
+
+<p>Playbookin syntax-check
+<img src="kuvat/h3-18.png" alt="Kuva X: Kuvan sisältö" />
+Suoritin playbookin seuraavalla komennolla:</p>
+<pre><code class="language-bash">ansible-playbook -i hosts.ini site.yml --ask-become-pass
+</code></pre>
+<p><code>ansible-playbook</code> käynnistää playbookin suorittamisen. <code>--ask-become-pass</code> pyytää ylläpitäjän salasanan, jotta Ansible voi suorittaa ylläpitoa vaativat tehtävät.</p>
+<p>Playbook suoritti tehtävät onnistuneesti. Tulosteessa näkyi, että tehtävät onnistuivat eikä virheitä tullut. <code>changed=0</code> tarkoitti tässä tapauksessa sitä, ettei järjestelmässä tarvinnut tehdä muutoksia, koska Nginx oli jo asennettu ja käynnissä edellisessä tehtävässä. Tämä on Ansiblen idempotenttisuuden tarkoitus: sama playbook voidaan suorittaa useita kertoja ilman tarpeettomia muutoksia.</p>
+<p>Suorituksen yhteydessä näkyi myös Python-tulkin löytämiseen liittyvä varoitus. Se ei estänyt playbookin suorittamista.</p>
+
+<p>Playbookin onnistunut suoritus
+<img src="kuvat/h3-22.png" alt="Kuva X: Kuvan sisältö" />
+Lopuksi tarkistin vielä palveluiden tilat:</p>
+<pre><code class="language-bash">systemctl is-active nginx apache2
+</code></pre>
+<p>Nginx oli aktiivinen ja Apache oli pysäytettynä. Avasin myös verkkosivun selaimessa ja varmistin, että se näkyi edelleen oikein.</p>
+
+<p><img src="kuvat/h3-24.png" alt="Kuva X: Kuvan sisältö" />
+Lopputilanne – Nginx aktiivinen, Apache inactive ja verkkosivu toimii</p>
+
+<hr />
+
+<h2>Lähteet</h2>
+<ul>
+<li>Karvinen, Tero. <a href="https://terokarvinen.com/apache-ansible/">Apache installed with Ansible – quick notes</a></li>
+<li>Ansible Community Documentation. <a href="https://docs.ansible.com/projects/ansible/latest/playbook_guide/playbooks_handlers.html">Handlers: running operations on change</a></li>
+<li>Ansible Documentation. <code>ansible-doc apt</code> ja <code>ansible-doc service</code>.</li>
+<li>Hacker News. https://thehackernews.com/2026/11/n-able-patches-17-n-central-flaws-as.html?</li>
+</ul>
+
+</body>
+</html>
