@@ -1,194 +1,118 @@
+
 <!DOCTYPE html>
 <html lang="fi">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>H4-Pizzafantasia</title>
-<style>
-body{max-width:900px;margin:40px auto;padding:0 20px;font-family:Arial,sans-serif;line-height:1.6;color:#222}
-h1,h2{line-height:1.3} p{margin:.7rem 0} pre{overflow-x:auto;padding:14px;background:#f4f4f4;border-radius:5px}
-code{font-family:Consolas,monospace;background:#f4f4f4;padding:2px 4px;border-radius:3px}
-pre code{background:transparent;padding:0} img{max-width:100%;height:auto} ul{margin-top:.4rem}
-</style>
-</head><body>
-<h1>H4-Pizzafantasia</h1>
-<h2>x) Lue ja tiivistä</h2>
-<p>Karvinen 2023: Configuration Management of Distributed Systems over Unreliable and Hostile Networks</p>
-<p>Luku 4.12.1 – Size and Complexity of Some DSLs</p>
-<ul><li>Konfiguraationhallintatyökalut käyttävät usein omia ohjelmointikieliään eli DSL-kieliä (Domain Specific Language).</li></ul>
-<ul><li>Suuri määrä toimintoja tekee järjestelmistä monimutkaisempia ja niiden opettelusta vaikeampaa.</li></ul>
-<p><strong>Oma huomio:</strong> Kaikkien toimintojen opettelu ei ole tarpeellista, sillä tavallisessa palvelinhallinnassa käytetään usein vain pientä osaa ominaisuuksista.</p>
-<p>Luku 4.12.2 – Use of DSL Functions in Case Configuration</p>
-<ul><li>Tutkitaan Mozilla Release Engineeringin ja Yhdysvaltain hallinnon Puppet-konfiguraatioita.</li></ul>
-<ul><li>Tutkimuksessa havaittiin, että suuri osa käytetyistä toiminnoista liittyi tiedostojen käsittelyyn, ohjelmistojen asentamiseen ja palveluiden hallintaan.</li></ul>
-<ul><li>Erityisen yleinen toimintamalli oli package-file-service, jossa ensin asennetaan ohjelmisto, sitten määritetään sen asetukset ja lopuksi varmistetaan palvelun toiminta.</li></ul>
-<ul><li>Tutkimus osoitti, että käytännössä pieni määrä toimintoja riittää moniin tavallisiin palvelinhallinnan tehtäviin.</li></ul>
-<p><strong>Oma huomio:</strong> Tämä näkyi myös omassa työssäni, sillä Redis-palvelimen automatisointi onnistui muutamalla Ansible-moduulilla.</p>
-<p>Luku 4.12.3.1 – Dependencies Between Main Functions</p>
-<ul><li>Konfiguraationhallinnan tärkeimpiä toimintoja ovat ohjelmistojen asentaminen, tiedostojen hallinta, palveluiden käynnistäminen sekä käyttäjien ja ryhmien hallinta.</li></ul>
-<ul><li>Esimerkiksi palvelu pitää käynnistää uudelleen silloin, kun sen asetustiedosto muuttuu. Turhia uudelleenkäynnistyksiä tulee välttää.</li></ul>
-<ul><li>Toimintojen väliset riippuvuudet voidaan toteuttaa esimerkiksi siten, että tiedoston muuttuminen käynnistää palvelun uudelleen.</li></ul>
-<p><strong>Oma huomio:</strong> Ansible-handlerin käyttäminen Redis-palvelun uudelleenkäynnistämiseen oli hyvä esimerkki tästä toimintatavasta.</p>
-<h2>a) Räpylä</h2>
-<p>Tässä tehtävässä asensin Debian 13 -virtuaalikoneelle Redis-palvelimen. Redis on avoimen lähdekoodin tietovarasto, joka säilyttää tietoa avain-arvo-pareina. Sitä voidaan käyttää esimerkiksi välimuistina ja sovellusten tietojen tallentamiseen.</p>
-<p>Aloitin päivittämällä paketinhallinnan tiedot ja asentamalla Redis-palvelimen:</p>
-<pre><code>sudo apt-get update</code></pre>
-<pre><code>sudo apt-get install redis-server</code></pre>
-<pre><code>sudo suorittaa komennon ylläpitäjän oikeuksilla. apt-get update päivittää pakettilähteiden tiedot, ja apt-get install asentaa halutun ohjelmistopaketin.</code></pre>
-<p>Asennuksen yhteydessä järjestelmä asensi myös Redis-palvelimen tarvitsemat lisäpaketit, kuten redis-tools.</p>
-<p>Redis-palvelimen asentaminen terminaalissa.</p>
-<p><img src="kuvat/h4-01.png" alt="Kuva 1: Redis-palvelimen asentaminen"></p>
-<p>Tarkistin asennuksen jälkeen palvelun tilan:</p>
-<pre><code>sudo systemctl status redis-server</code></pre>
-<p>systemctl on Linuxin palveluiden hallintaan tarkoitettu työkalu. status näyttää palvelun tilan ja muita tietoja.</p>
-<p>Tulosteessa näkyi active (running), mikä tarkoitti, että Redis-palvelin oli käynnissä. Lisäksi palvelun tila oli enabled, joten se käynnistyy automaattisesti järjestelmän käynnistyessä.</p>
-<p>Redis-palvelun aktiivinen tila.</p>
-<p><img src="kuvat/h4-02.png" alt="Kuva 1: Redis-palvelimen asentaminen"></p>
-<p>Testasin seuraavaksi Redis-palvelimen toimintaa:</p>
-<pre><code>redis-cli ping</code></pre>
-<pre><code>redis-cli on Redis-palvelimen komentorivityökalu. ping lähettää palvelimelle testipyynnön. Vastaukseksi sain PONG, mikä vahvisti, että Redis vastasi oikein.</code></pre>
-<p>Redis-palvelimen PONG-vastaus.</p>
-<p><img src="kuvat/h4-03.png" alt="Kuva 1: Redis-palvelimen asentaminen"></p>
-<h2>b) Automaatti</h2>
-<p>Seuraavaksi automatisoin Redis-palvelimen asennuksen ja hallinnan Ansiblella.</p>
-<p>Loin tehtävää varten oman projektihakemiston:</p>
-<pre><code>mkdir ~/h4-pizzafantasia</code></pre>
-<pre><code>cd ~/h4-pizzafantasia</code></pre>
-<pre><code>mkdir luo uuden hakemiston ja cd siirtyy kyseiseen hakemistoon.</code></pre>
-<p>Projektin sisälle loin Redis-roolin hakemistorakenteen:</p>
-<pre><code>mkdir -p roles/redis/tasks</code></pre>
-<pre><code>mkdir -p roles/redis/handlers</code></pre>
-<p>Ansible-rooli jakaa automaation pienempiin osiin. Tässä tapauksessa Redis-palvelimen asennus, asetukset ja palvelun hallinta sijoitettiin omaan rooliinsa.</p>
-<p>Loin myös site.yml-tiedoston, joka määrittää suoritettavan playbookin:</p>
-<pre><code>---</code></pre>
-<ul><li>name: Configure Redis server</li></ul>
-<p>hosts: localhost</p>
-<p>become: yes</p>
-<p>roles:</p>
-<ul><li>redis</li></ul>
-<p>Playbookin tärkeimmät asetukset:</p>
-<ul><li>name määrittää tehtävän nimen.</li><li>hosts määrittää hallittavan koneen. Käytin localhost-arvoa, koska hallitsin paikallista Debian-virtuaalikonetta.</li><li>become: yes mahdollistaa komentojen suorittamisen ylläpitäjän oikeuksilla.</li><li>roles määrittää käytettävän Ansible-roolin.</li></ul>
-<p>site.yml-tiedoston sisältö.</p>
-<p><img src="kuvat/h4-04.png" alt="Kuva 1: Redis-palvelimen asentaminen"></p>
-<p>Redis-roolin tehtävät</p>
-<p>Loin seuraavaksi tiedoston:</p>
-<pre><code>nano roles/redis/tasks/main.yml</code></pre>
-<p>Tiedostoon määritin Redis-palvelimen asennuksen ja käynnistyksen:</p>
-<ul><li>name: Install Redis server</li></ul>
-<p>apt:</p>
-<p>name: redis-server</p>
-<p>state: present</p>
-<p>update_cache: yes</p>
-<ul><li>name: Ensure Redis is running</li></ul>
-<p>service:</p>
-<p>name: redis-server</p>
-<p>state: started</p>
-<p>enabled: yes</p>
-<p>Ensimmäisessä tehtävässä käytetään Ansiblen apt-moduulia. Se huolehtii Redis-paketin asentamisesta.</p>
-<ul><li>name määrittää asennettavan paketin.</li><li>state: present varmistaa, että paketti on asennettuna.</li><li>update_cache: yes päivittää pakettilähteiden tiedot ennen asennusta.</li></ul>
-<p>Toisessa tehtävässä käytetään service-moduulia Linux-palvelun hallintaan.</p>
-<ul><li>name määrittää hallittavan palvelun.</li><li>state: started varmistaa, että Redis on käynnissä.</li><li>enabled: yes määrittää, että palvelu käynnistyy automaattisesti käyttöjärjestelmän käynnistyessä.</li></ul>
-<p>Redis-roolin main.yml-tiedosto.</p>
-<p><img src="kuvat/h4-05.png" alt="Kuva 1: Redis-palvelimen asentaminen"></p>
-<p>Redis-asetustiedoston muokkaaminen</p>
-<p>Seuraavaksi tein oman Redis-asetustiedoston nimeltä redis.conf.</p>
-<p>Tiedostossa muokkasin lokitustasoa:</p>
-<pre><code>loglevel warning</code></pre>
-<p>Redis-palvelimen lokitustaso määrittää, kuinka paljon tietoa palvelin kirjoittaa lokiin. warning tarkoittaa, että lokiin tallennetaan varoitukset ja niitä vakavammat ilmoitukset.</p>
-<p>Asetustiedoston avulla voidaan hallita Redis-palvelimen toimintaa keskitetysti.</p>
-<p>redis.conf-tiedoston lokiasetus.</p>
-<p><img src="kuvat/h4-07.png" alt="Kuva 1: Redis-palvelimen asentaminen"></p>
-<p>Lisäsin main.yml-tiedostoon tehtävän, joka kopioi asetustiedoston palvelimen oikeaan hakemistoon:</p>
-<ul><li>name: Copy Redis configuration</li></ul>
-<p>copy:</p>
-<p>src: redis.conf</p>
-<p>dest: /etc/redis/redis.conf</p>
-<p>owner: root</p>
-<p>group: redis</p>
-<p>mode: '0640'</p>
-<p>notify: Restart Redis</p>
-<p>Tässä käytetään Ansiblen copy-moduulia.</p>
-<ul><li>src määrittää kopioitavan tiedoston.</li><li>dest määrittää tiedoston kohdesijainnin.</li><li>owner määrittää tiedoston omistajan.</li><li>group määrittää tiedoston käyttäjäryhmän.</li><li>mode: '0640' määrittää tiedoston käyttöoikeudet.</li><li>notify ilmoittaa handlerille, että Redis pitää käynnistää uudelleen, jos asetustiedostoon tulee muutoksia.</li></ul>
-<p>Käyttöoikeudessa 0640 omistajalla on luku- ja kirjoitusoikeus, ryhmällä lukuoikeus ja muilla käyttäjillä ei ole oikeuksia.</p>
-<p>Redis-asetustiedoston kopiointitehtävä.</p>
-<p><img src="kuvat/h4-08.png" alt="Kuva 1: Redis-palvelimen asentaminen"></p>
-<p>Handlerin luominen</p>
-<p>Loin seuraavaksi handler-tiedoston:</p>
-<pre><code>nano roles/redis/handlers/main.yml</code></pre>
-<p>Lisäsin tiedostoon seuraavan sisällön:</p>
-<ul><li>name: Restart Redis</li></ul>
-<p>service:</p>
-<p>name: redis-server</p>
-<p>state: restarted</p>
-<p>Handler on Ansible-tehtävä, joka suoritetaan vain silloin, kun jokin toinen tehtävä ilmoittaa muutoksesta notify-asetuksella.</p>
-<p>Tässä tapauksessa Redis-palvelu käynnistetään uudelleen, jos sen asetustiedostoa muutetaan. Näin uudet asetukset tulevat käyttöön ilman tarpeettomia uudelleenkäynnistyksiä.</p>
-<p>Handler-tiedoston sisältö.</p>
-<p><img src="kuvat/h4-09.png" alt="Kuva 1: Redis-palvelimen asentaminen"></p>
-<h2>c) Asetus</h2>
-<p>Kun tarvittavat tiedostot olivat valmiina, suoritin playbookin projektihakemistossa:</p>
-<pre><code>ansible-playbook -i hosts.ini site.yml --ask-become-pass</code></pre>
-<p>Komennon osat:</p>
-<ul><li>ansible-playbook käynnistää playbookin suorittamisen.</li><li>-i hosts.ini määrittää inventaariotiedoston, jossa määritellään hallittavat koneet.</li><li>site.yml on suoritettava playbook.</li><li>--ask-become-pass pyytää ylläpitäjän salasanan, jotta Ansible voi suorittaa ylläpitoa vaativat tehtävät.</li></ul>
-<p>Ensimmäisellä suorituskerroilla Ansible suoritti Redis-palvelimen asennuksen, varmisti palvelun käynnissäolon ja kopioi asetustiedoston paikalleen.</p>
-<p>Tulosteessa näkyi myös changed-merkintöjä. Tämä tarkoittaa, että Ansible teki järjestelmään muutoksia.</p>
-<p>Suoritus päättyi onnistuneesti. Tuloksena oli failed=0, joten tehtävässä ei ollut virheitä.</p>
-<p>Ansible-playbookin ensimmäinen onnistunut suoritus.</p>
-<p><img src="kuvat/h4-06.png" alt="Kuva 1: Redis-palvelimen asentaminen"></p>
-<p>Playbookin suorittaminen uudelleen</p>
-<p>Suoritin playbookin uudelleen samalla komennolla:</p>
-<pre><code>ansible-playbook -i hosts.ini site.yml --ask-become-pass</code></pre>
-<p>Tällä kertaa tulosteessa näkyi, että tehtävät olivat jo kunnossa eikä tarpeettomia muutoksia tarvinnut tehdä.</p>
-<p>Playbookin uudelleen suorittaminen ilman muutoksia.</p>
-<p><img src="kuvat/h4-10.png" alt="Kuva 1: Redis-palvelimen asentaminen"></p>
-<p>Asetuksen muuttamisen testaaminen</p>
-<p>Testasin myös asetustiedoston muutoksen vaikutusta. Kun Redis-asetustiedosto kopioitiin uudelleen palvelimelle, Ansible tunnisti muutoksen ja suoritti Restart Redis -handlerin.</p>
-<p>Tulosteessa näkyi:</p>
-<ul><li>changed, kun asetustiedosto muuttui.</li><li>RUNNING HANDLER [redis : Restart Redis], kun Redis käynnistettiin uudelleen.</li></ul>
-<p>Näin varmistin, että handler toimii oikein ja palvelu käynnistyy uudelleen asetusten muuttuessa.</p>
-<p>Redis-asetuksen tarkistaminen</p>
-<p>Tarkistin vielä Redis-palvelimen käyttämän lokitustason:</p>
-<pre><code>redis-cli CONFIG GET loglevel</code></pre>
-<p>Komento hakee Redis-palvelimen asetuksista loglevel-arvon.</p>
-<p>Vastauksessa näkyi:</p>
-<pre><code>1) &quot;loglevel&quot;</code></pre>
-<pre><code>2) &quot;warning&quot;</code></pre>
-<p>Tämä vahvisti, että muokkaamani asetus oli käytössä Redis-palvelimessa.</p>
-<p>Redis-palvelimen loglevel-asetuksen tarkistaminen.</p>
-<p><img src="kuvat/h4-11.png" alt="Kuva 1: Redis-palvelimen asentaminen"></p>
-<h2>d) Paikka remonttiin</h2>
-<p>Aloitin poistamalla Redis-palvelimen Debian-virtuaalikoneelta:</p>
-<pre><code>sudo apt-get purge redis-server</code></pre>
-<pre><code>sudo suorittaa komennon ylläpitäjän oikeuksilla. apt-get purge poistaa Redis-palvelimen sekä siihen liittyvät asetustiedostot.</code></pre>
-<p>Redis-palvelimen poistaminen purge-komennolla.</p>
-<p><img src="kuvat/h4-12.png" alt="Kuva 1: Redis-palvelimen asentaminen"></p>
-<p>Poistamisen jälkeen suoritin Ansible-playbookin uudelleen:</p>
-<pre><code>ansible-playbook -i hosts.ini site.yml --ask-become-pass</code></pre>
-<p>Ansible kävi roolin tehtävät läpi järjestyksessä. Ensimmäisenä se tarkisti Redis-paketin asennuksen. Koska olin poistanut ohjelmiston, Ansible asensi sen uudelleen. Seuraavaksi Ansible varmisti palvelun käynnissäolon ja kopioi Redis-asetustiedoston takaisin oikeaan sijaintiin.</p>
-<p>Jos asetustiedosto muuttui, Ansible suoritti myös Restart Redis -handlerin, jolloin palvelu käynnistettiin uudelleen.</p>
-<p>Ansible-playbookin suorittaminen Redis-palvelimen poistamisen jälkeen ja sen palauttaminen.</p>
-<p><img src="kuvat/h4-13.png" alt="Kuva 1: Redis-palvelimen asentaminen"></p>
-<h2>e) Idempotentti</h2>
-<p>Viimeisessä vaiheessa testasin Ansible-automaation idempotenttisuutta.</p>
-<p>Idempotenttisuus tarkoittaa sitä, että sama automaatiokomento voidaan suorittaa useita kertoja ilman, että järjestelmään tehdään tarpeettomia muutoksia. Ansible tarkistaa järjestelmän nykyisen tilan ja vertaa sitä playbookissa määriteltyyn tavoitetilaan.</p>
-<p>Suoritin saman playbookin uudelleen:</p>
-<pre><code>ansible-playbook -i hosts.ini site.yml --ask-become-pass</code></pre>
-<p>Tällä kertaa kaikki tehtävät olivat jo tavoitetilassa, joten Ansible ei joutunut tekemään muutoksia.</p>
-<p>Suorituksen lopussa näkyi seuraava yhteenveto:</p>
-<pre><code>localhost : ok=4 changed=0 unreachable=0 failed=0</code></pre>
-<p>Tuloksen merkitys:</p>
-<p>ok=4 tarkoittaa, että neljä tehtävää suoritettiin onnistuneesti.</p>
-<p>changed=0 tarkoittaa, ettei järjestelmään tehty muutoksia.</p>
-<p>unreachable=0 tarkoittaa, että hallittavaan koneeseen saatiin yhteys.</p>
-<p>failed=0 tarkoittaa, ettei tehtävissä ollut virheitä.</p>
-<p>Playbookin suorittaminen uudelleen ja changed=0-tulos.</p>
-<p><img src="kuvat/h4-14.png" alt="Kuva 1: Redis-palvelimen asentaminen"></p>
-<h2>Lähteet</h2>
-<p>Karvinen, T. 2026. Palvelinten Hallinta – H4 Pizza Fantasia. <a href="https://terokarvinen.com/palvelinten-hallinta/">https://terokarvinen.com/palvelinten-hallinta/</a></p>
-<p>Karvinen, T. 2026. Hello Ansible. <a href="https://terokarvinen.com/palvelinten-hallinta/">https://terokarvinen.com/palvelinten-hallinta/</a></p>
-<p>Karvinen, T. 2025. Pkg-File-Service – Control Daemons with Salt. <a href="https://terokarvinen.com/2025/palvelinten-hallinta-ici001as3a-3012-2025p2/">https://terokarvinen.com/2025/palvelinten-hallinta-ici001as3a-3012-2025p2/</a></p>
-<p>Ansible Community Documentation. Ansible Documentation. <a href="https://docs.ansible.com/">https://docs.ansible.com/</a></p>
-<p>Ansible Community Documentation. Handlers: Running Operations on Change. <a href="https://docs.ansible.com/projects/ansible/latest/playbook_guide/playbooks_handlers.html">https://docs.ansible.com/projects/ansible/latest/playbook_guide/playbooks_handlers.html</a></p>
-<p>Redis Documentation. Install Redis on Linux. <a href="https://redis.io/docs/latest/operate/oss_and_stack/install/install-redis/install-redis-on-linux/">https://redis.io/docs/latest/operate/oss_and_stack/install/install-redis/install-redis-on-linux/</a></p>
-<p>Redis Documentation. Redis Configuration. <a href="https://redis.io/docs/latest/management/config/">https://redis.io/docs/latest/management/config/</a></p>
-<p>Tekoälyä käytetty käsitteiden ja käskyjen avaamiseen.</p>
-</body></html>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>H4 - Pizza Fantasia</title>
+
+    <!-- Markdown-muunnin -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/lib/marked.umd.js"></script>
+
+    <style>
+        body {
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 0 20px;
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #222;
+            background-color: #fff;
+        }
+
+        h1, h2, h3 {
+            line-height: 1.3;
+            margin-top: 1.5em;
+        }
+
+        p {
+            margin: 0.8em 0;
+        }
+
+        pre {
+            background-color: #f4f4f4;
+            padding: 16px;
+            border-radius: 6px;
+            overflow-x: auto;
+            line-height: 1.5;
+            border: 1px solid #ddd;
+        }
+
+        pre code {
+            background: none;
+            padding: 0;
+            font-family: Consolas, Monaco, monospace;
+            font-size: 14px;
+            white-space: pre;
+        }
+
+        code {
+            background-color: #f4f4f4;
+            padding: 2px 5px;
+            border-radius: 4px;
+            font-family: Consolas, Monaco, monospace;
+        }
+
+        img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 15px 0;
+        }
+
+        ul, ol {
+            padding-left: 30px;
+        }
+
+        li {
+            margin-bottom: 5px;
+        }
+
+        hr {
+            margin: 30px 0;
+            border: 0;
+            border-top: 1px solid #ddd;
+        }
+
+        a {
+            color: #0969da;
+        }
+    </style>
+</head>
+
+<body>
+
+<div id="content">
+    <p>Ladataan raporttia...</p>
+</div>
+
+<script>
+    const markdownUrl =
+        "https://raw.githubusercontent.com/Sebuare/Palvelinten-hallinta---ICI001AS3A-3015/main/h4.md";
+
+    fetch(markdownUrl)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error("Raportin lataaminen epäonnistui.");
+            }
+
+            return response.text();
+        })
+        .then(markdown => {
+            const html = marked.parse(markdown, {
+                gfm: true,
+                breaks: false
+            });
+
+            document.getElementById("content").innerHTML = html;
+        })
+        .catch(error => {
+            document.getElementById("content").innerHTML =
+                "<p>Raportin lataaminen epäonnistui. Tarkista internet-yhteys tai h4.md-tiedoston sijainti.</p>";
+
+            console.error(error);
+        });
+</script>
+
+</body>
+</html>
